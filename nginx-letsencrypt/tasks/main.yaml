@@ -14,6 +14,7 @@
 
 - name: Get letsencrypt directory stat
   shell: stat /var/www/letsencrypt
+  when: ansible_selinux
   changed_when: false
   register: ldst
 
@@ -21,6 +22,16 @@
   shell: chcon -Rt httpd_sys_content_t /var/www/letsencrypt/
   when: ansible_selinux and ldst.stdout.find('httpd_sys_content_t:s0') == -1
 
+- name: Get SElinux network connect status
+  shell: getsebool httpd_can_network_connect
+  when: ansible_selinux
+  changed_when: false
+  register: seconn
+
+- name: Set httpd_can_network_connect
+  shell: setsebool httpd_can_network_connect on -P
+  when: ansible_selinux and seconn.rc != 0
+   
 - name: Install nginx site for letsencrypt requests
   template: src=letsencrypt-ack.conf.j2 dest=/etc/nginx/conf.d/letsencrypt-ack.conf
   notify: reload nginx
@@ -45,8 +56,12 @@
     special_time: weekly
     job: /usr/bin/certbot --renew certonly -n --webroot -w /var/www/letsencrypt -m {{ letsencrypt_email }} --agree-tos -d {{ domain_name }} && /usr/bin/systemctl reload nginx 
 
-- name: Ensure https config for nginx inplace
+- name: Ensure https config for nginx is up to date
   template: src=basic-https.conf.j2 dest=/etc/nginx/conf.d/{{ domain_name }}.conf
+  notify: reload nginx
+
+- name: Ensure bot config for nginx is up to date
+  template: src=bot.conf.j2 dest=/etc/nginx/conf.d/bot.conf
   notify: reload nginx
 
 
