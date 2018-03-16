@@ -1,0 +1,24 @@
+---
+- sysctl: name="net.ipv4.ip_forward" value=1 sysctl_set=yes reload=yes
+#- sysctl: name="net.ipv6.conf.all.forwarding" value=1 sysctl_set=yes state=present reload=yes
+#- sysctl: name="net.ipv4.conf.all.accept_redirects" value=0 sysctl_set=yes reload=yes
+#- sysctl: name="net.ipv4.conf.all.send_redirects" value=0 sysctl_set=yes state=present reload=yes
+
+- name: Install additional packages
+  package: name={{ item }} state=installed
+  with_items:
+    - bash-completion
+    - vim
+    - iptables-services
+    - tcpdump
+    - telnet
+    - sysstat
+    - nc
+
+- name: Enable iptables state
+  systemd: name=iptables enabled=yes state=started
+
+- name: Configure chronyd
+  template: src=chrony.conf.j2 dest=/etc/chrony.conf owner="root" mode="0644"
+  notify:
+    - restart chronyd

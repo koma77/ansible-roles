@@ -1,0 +1,9 @@
+---
+- name: restart strongswan
+  systemd: name=strongswan state=restarted
+
+- name: restart xl2tpd
+  systemd: name=xl2tpd state=restarted
+
+- name: restart radvd
+  systemd: name=radvd state=restarted

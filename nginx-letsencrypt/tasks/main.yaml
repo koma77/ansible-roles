@@ -1,0 +1,52 @@
+---
+- name: Ensure Letsencrypt certbot installed
+  package: name=certbot state=installed
+
+- name: Ensure nginx installed
+  package: name=nginx state=installed
+
+- name: Ensure nginx config exists
+  template: src=nginx.conf.j2 dest=/etc/nginx/nginx.conf
+  notify: reload nginx
+
+- name: Ensure letsencrypt directory exists
+  file: name=/var/www/letsencrypt state=directory
+
+- name: Get letsencrypt directory stat
+  shell: stat /var/www/letsencrypt
+  changed_when: false
+  register: ldst
+
+- name: Allow nginx to read from directory
+  shell: chcon -Rt httpd_sys_content_t /var/www/letsencrypt/
+  when: ansible_selinux and ldst.stdout.find('httpd_sys_content_t:s0') == -1
+
+- name: Install nginx site for letsencrypt requests
+  template: src=letsencrypt-ack.conf.j2 dest=/etc/nginx/conf.d/letsencrypt-ack.conf
+  notify: reload nginx
+
+- name: Generate dhparams
+  shell: openssl dhparam -out /etc/nginx/dhparams.pem 2048
+  args:
+    creates: /etc/nginx/dhparams.pem
+  notify: reload nginx
+
+- name: Ensure nginx is running
+  systemd: name=nginx state=started daemon_reload=yes
+
+- name: Create letsencrypt certificate
+  shell: /usr/bin/certbot certonly -n --webroot -w /var/www/letsencrypt -m {{ letsencrypt_email }} --agree-tos -d {{ domain_name }}
+  args:
+    creates: /etc/letsencrypt/live/{{ domain_name }}
+
+- name: Ensure letsencrypt cronjob for cert renewal exists
+  cron:
+    name: letsencrypt_renewal
+    special_time: weekly
+    job: /usr/bin/certbot --renew certonly -n --webroot -w /var/www/letsencrypt -m {{ letsencrypt_email }} --agree-tos -d {{ domain_name }} && /usr/bin/systemctl reload nginx 
+
+- name: Ensure https config for nginx inplace
+  template: src=basic-https.conf.j2 dest=/etc/nginx/conf.d/{{ domain_name }}.conf
+  notify: reload nginx
+
+

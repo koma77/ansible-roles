@@ -1,0 +1,17 @@
+---
+- name: Install packages
+  package: name={{ item }} state=present
+  with_items:
+    - epel-release
+    - tor
+  tags: tor
+
+- name: Configure tor
+  template: src=torrc.j2 dest=/etc/tor/torrc mode="0644" owner="root"
+  notify:
+    - restart tor
+  tags: tor
+
+- name: Ensure tor started
+  systemd: name=tor enabled=True state=started daemon_reload=True
+  tags: tor

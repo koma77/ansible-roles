@@ -1,0 +1,3 @@
+---
+- name: restart tor
+  systemd: name=tor state=restarted daemon_reload=yes

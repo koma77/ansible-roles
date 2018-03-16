@@ -1,0 +1,32 @@
+# {{ ansible_managed }}
+config setup
+#charondebug=”ike 4, knl 4, cfg 2″
+
+#conn l2tp-psk
+#authby = secret
+#auto = add
+#keyexchange = ikev1
+#type = transport
+#left = %any
+##leftprotoport=17/1701
+#right = "VPN SERVER's IP ADDRESS. NOT A DOMAIN NAME!"
+#rightprotoport=17/1701
+#ike = aes256-sha1-modp2048
+#ikelifetime = 8h
+#esp = aes256-sha1-modp2048
+
+conn l2tp-psk
+        type=transport
+        authby=secret
+        pfs=no
+        rekey=no
+        #ike=3des-sha1-modp1024
+        #esp=3des-sha1-modp1024
+        keyingtries=1
+        left=%any
+        leftprotoport=udp/l2tp
+        leftid={{ ansible_default_ipv4.address }}
+        right=%any
+        rightprotoport=udp/%any
+        #rightprotoport=udp/l2tp
+        auto=add

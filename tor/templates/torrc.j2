@@ -1,0 +1,12 @@
+ControlSocket /run/tor/control
+ControlSocketsGroupWritable 1
+CookieAuthentication 1
+CookieAuthFile /run/tor/control.authcookie
+CookieAuthFileGroupReadable 1
+### Custom settings:
+AutomapHostsOnResolve 1
+SOCKSPort 9050
+SocksBindAddress 127.0.0.1
+SocksPolicy accept 127.0.0.1
+SocksPolicy reject *
+ExcludeExitNodes {RU}, {UA}, {BY}

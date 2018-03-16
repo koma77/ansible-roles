@@ -1,0 +1,14 @@
+; {{ ansible_managed }}
+[global]
+port = 1701
+access control = no
+
+[lns default]
+ip range = 172.16.1.200-172.16.1.250
+local ip = 172.16.1.1
+require authentication = yes
+unix authentication = no
+name = xl2tpd
+require chap = yes
+refuse pap = yes
+pppoptfile = /etc/ppp/options.xl2tpd

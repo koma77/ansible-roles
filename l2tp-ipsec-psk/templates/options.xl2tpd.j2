@@ -1,0 +1,21 @@
+# {{ ansible_managed }}
+#ms-dns  172.16.1.1
+ms-dns  8.8.4.4
+ms-dns  8.8.8.8
+# ms-wins 192.168.1.2
+# ms-wins 192.168.1.4
+idle 1800
+#debug
+#lock
+proxyarp
+connect-delay 5000
+noccp
+auth
+mtu 1410
+mru 1410
+nodefaultroute
+#lock
+silent
++ipv6
+ipv6 ::1,::2
+ipv6cp-accept-local

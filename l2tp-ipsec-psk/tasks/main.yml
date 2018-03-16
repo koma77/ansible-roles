@@ -1,0 +1,64 @@
+---
+- name: Install required packages
+  package: name={{ item }} state=present
+  with_items:
+    - epel-release
+    - strongswan
+    - xl2tpd
+
+- name: Include vars from vars/vpn_users.yml
+  include_vars:  dir='vars' files_matching={{ inc_vars }}
+  no_log: True
+  tags: ["passwd"]
+
+- name: Ensure vpn domain update cronjob exists
+  cron:
+    name: "Update afraid.org dns for vpn"
+    hour: "5"
+    minute: "2"
+    job: "curl -q {{ domain_vpn_upd_url }} 2>&1 > /dev/null"
+
+- name: Update afraid.org right now
+  uri: url={{ domain_vpn_upd_url }} return_content=yes
+
+- name: Ensure strongswan secrets file exists
+  template: src=ipsec.secrets.j2 dest=/etc/strongswan/ipsec.secrets mode="0600" owner="root"
+  notify:
+    - restart strongswan
+
+- name: Ensure strongswan config file exists
+  template: src=ipsec.conf.j2 dest=/etc/strongswan/ipsec.conf mode="0644" owner="root"
+  notify:
+    - restart strongswan
+
+- name: Ensure xl2tpd config file exists
+  template: src=xl2tpd.conf.j2 dest=/etc/xl2tpd/xl2tpd.conf mode="0644" owner="root"
+  notify:
+    - restart xl2tpd
+
+- name: Ensure xl2tpd options file exists
+  template: src=options.xl2tpd.j2 dest=/etc/ppp/options.xl2tpd mode="0644" owner="root"
+  notify:
+    - restart xl2tpd
+
+- name: Create chap secrets file 
+  template: src=chap-secrets.j2 dest=/etc/ppp/chap-secrets mode="0600" owner="root"
+  tags: ["passwd"]
+
+- name: Ensure vpn services started
+  systemd: name={{ item }} enabled=True state=started daemon_reload=True
+  with_items:
+    - xl2tpd
+    - strongswan
+
+- name: Create iptables save file
+  template: src={{ item }}tables.save.j2 dest=/etc/sysconfig/{{ item }}tables mode="0644" owner="root"
+  with_items:
+    - ip
+  tags: iptables
+
+- name: Restore iptables rules
+  shell: /usr/sbin/{{ item }}tables-restore < /etc/sysconfig/{{ item }}tables
+  with_items:
+    - ip
+  tags: iptables
