@@ -11,16 +11,6 @@
   no_log: True
   tags: ["passwd"]
 
-- name: Ensure vpn domain update cronjob exists
-  cron:
-    name: "Update afraid.org dns for vpn"
-    hour: "5"
-    minute: "2"
-    job: "curl -q {{ domain_vpn_upd_url }} 2>&1 > /dev/null"
-
-- name: Update afraid.org right now
-  uri: url={{ domain_vpn_upd_url }} return_content=yes
-
 - name: Ensure strongswan secrets file exists
   template: src=ipsec.secrets.j2 dest=/etc/strongswan/ipsec.secrets mode="0600" owner="root"
   notify:

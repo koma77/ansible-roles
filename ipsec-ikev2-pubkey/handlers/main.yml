@@ -1,0 +1,7 @@
+---
+- name: restart strongswan
+  systemd: name=strongswan state=restarted
+
+- name: disable xl2tpd
+  systemd: name=xl2tpd state=stopped enabled=no
+

@@ -1,0 +1,14 @@
+#!/bin/sh
+
+if [ "$#" -eq  "0" ]
+then
+  echo "pla provide user name"
+  exit 1
+fi
+
+CONFIG_DIR="/etc/strongswan/ipsec.d"
+IPSEC="strongswan"
+
+#Revoking a certificate if client certificate is lost or stolen
+eval $IPSEC pki --signcrl --reason key-compromise --cacert $CONFIG_DIR/cacerts/caCert.pem --cakey $CONFIG_DIR/private/caKey.pem --cert "${CONFIG_DIR}/certs/clientCert-${1}.pem" --outform pem > $CONFIG_DIR/crls/crl.pem
+eval $IPSEC restart

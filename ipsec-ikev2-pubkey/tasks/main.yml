@@ -1,0 +1,76 @@
+---
+- name: Install required packages
+  package: name={{ item }} state=present
+  with_items:
+    - epel-release
+    - strongswan
+
+- name: Include vars from vars/vpn_users.yml
+  include_vars:  dir='vars' files_matching={{ inc_vars }}
+  no_log: True
+  tags: ["passwd"]
+
+- name: Ensure strongswan secrets file exists
+  template: src=ipsec.secrets.j2 dest=/etc/strongswan/ipsec.secrets mode="0600" owner="root"
+  notify:
+    - restart strongswan
+
+- name: Ensure strongswan config file exists
+  template: src=ipsec.conf.j2 dest=/etc/strongswan/ipsec.conf mode="0644" owner="root"
+  notify:
+    - restart strongswan
+
+- name: Ensure xl2tpd config file removed
+  file: path=/etc/xl2tpd/xl2tpd.conf state=absent
+  notify:
+    - disable xl2tpd
+
+- name: Ensure xl2tpd options file removed
+  file: path=/etc/ppp/options.xl2tpd state=absent
+  notify:
+    - disable xl2tpd
+
+- name: Ensure chap secrets file removed
+  file: path=/etc/ppp/chap-secrets state=absent
+
+- name: Ensure firewall management script exists
+  template: src=firewall.updown.j2 dest=/etc/strongswan/ipsec.d/firewall.updown owner="root" mode="0755"
+
+### Create CA, server cert
+- name: Ensure scripts directory exists
+  file: path=/root/scripts state=directory
+
+- name: Ensure pki management scripts are present
+  template: src={{ item }}.j2 dest=/root/scripts/{{ item }} mode="0700" owner="root"
+  with_items:
+  - generate_server_certs.sh
+  - generate_client_cert.sh
+  - revoke_client_cert.sh
+
+- name: Generate server keys if not exists
+  shell: test -f /etc/strongswan/ipsec.d/cacerts/caCert.pem && test -f /etc/strongswan/ipsec.d/certs/serverCert.pem  && test -f /etc/strongswan/ipsec.d/private/caKey.pem && test -f /etc/strongswan/ipsec.d/private/serverKey.pem || /root/scripts/generate_server_certs.sh
+  register: command_result
+  changed_when: "command_result.stdout == 'Done server certificates creation'"
+  notify:
+  - restart strongswan
+
+- name: Create iptables save file
+  template: src={{ item }}tables.save.j2 dest=/etc/sysconfig/{{ item }}tables mode="0644" owner="root"
+  with_items:
+    - ip
+    - ip6
+  tags: iptables
+
+- name: Restore iptables rules
+  shell: /usr/sbin/{{ item }}tables-restore < /etc/sysconfig/{{ item }}tables
+  with_items:
+    - ip
+    - ip6
+  tags: iptables
+
+- name: Ensure vpn services started
+  systemd: name={{ item }} enabled=True state=started daemon_reload=True
+  with_items:
+    - strongswan
+
+

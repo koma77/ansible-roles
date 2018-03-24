@@ -1,0 +1,29 @@
+#!/bin/sh
+
+if [ "$#" -eq  "0" ]
+then
+  echo "please provide user name"
+  exit 1
+fi
+
+C={{ ca_c }}
+O={{ ca_c }}
+CA_CN="{{ ca_cn }}"
+SERVER_CN={{ domain_name }}
+#SAN is a subject alternative (like ip address or another hostname)
+SERVER_SAN="{{ domain_name }}"    ### REMOTEID in MACOSX
+CLIENT_CN="${1}@{{ domain_name }}" 
+CLIENT_SAN="${1}@{{ domain_name }}" ### This one is LOCALID in MACOSX
+CONFIG_DIR="/etc/strongswan/ipsec.d"
+IPSEC="strongswan"
+
+#Genrate Private key for client
+eval $IPSEC pki --gen --outform pem > "${CONFIG_DIR}/private/clientKey-${1}.pem"
+eval $IPSEC pki --issue --in "${CONFIG_DIR}/private/clientKey-${1}.pem" --type priv --cacert $CONFIG_DIR/cacerts/caCert.pem --cakey  $CONFIG_DIR/private/caKey.pem --dn \"C=$C, O=$O, CN=$CLIENT_CN\" --san=\"$CLIENT_SAN\" --outform pem > "${CONFIG_DIR}/private/clientCert-${1}.pem"
+
+echo "Reloading strongswan"
+systemctl strongswan restart
+
+# Pack client key and cert
+eval openssl pkcs12 -export -inkey "${CONFIG_DIR}/private/clientKey-${1}.pem" -in "${CONFIG_DIR}/private/clientCert-${1}.pem" -name \"$CLIENT_CN\" -certfile $CONFIG_DIR/cacerts/caCert.pem -caname \"$CA_CN\" -out "$CONFIG_DIR/clientCert-${1}.p12"
+
