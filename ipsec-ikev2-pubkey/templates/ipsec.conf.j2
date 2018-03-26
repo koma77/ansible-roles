@@ -25,7 +25,7 @@ conn roadwarrior
    leftid={{ domain_name }} # sever alternative (SAN)
    leftsendcert=always
    leftsubnet=0.0.0.0/0,::/0
-   leftupdown=/etc/strongswan/ipsec.d/firewall.updown
+   leftupdown=/usr/libexec/strongswan/firewall.updown
    right=%any
    rightauth=pubkey
    rightsourceip=172.27.1.200-172.27.1.250,fdef:a51d:f888::/112
