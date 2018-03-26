@@ -36,6 +36,16 @@
 - name: Ensure firewall management script exists
   template: src=firewall.updown.j2 dest=/etc/strongswan/ipsec.d/firewall.updown owner="root" mode="0755"
 
+- name: Get firewall.updown stat
+  shell: stat /etc/strongswan/ipsec.d/firewall.updown
+  when: ansible_selinux
+  changed_when: false
+  register: fst
+
+- name: Allow strongswan to manage firewall
+  shell: chcon "system_u:object_r:ipsec_key_file_t:s0" /etc/strongswan/ipsec.d/firewall.updown
+  when: ansible_selinux and fst.stdout.find('ipsec_key_file_t') == -1
+
 ### Create CA, server cert
 - name: Ensure scripts directory exists
   file: path=/root/scripts state=directory
@@ -59,13 +69,15 @@
   with_items:
     - ip
     - ip6
+  register: ipt
   tags: iptables
+
+#- debug: var=ipt
 
 - name: Restore iptables rules
   shell: /usr/sbin/{{ item }}tables-restore < /etc/sysconfig/{{ item }}tables
-  with_items:
-    - ip
-    - ip6
+  when: item.changed
+  with_items: "{{ ipt.results }}"
   tags: iptables
 
 - name: Ensure vpn services started
