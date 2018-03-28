@@ -5,6 +5,9 @@
 - name: Ensure nginx installed
   package: name=nginx state=installed
 
+- name: Ensure nginx-all-modules installed
+  package: name=nginx-all-modules state=installed
+
 - name: Ensure nginx config exists
   template: src=nginx.conf.j2 dest=/etc/nginx/nginx.conf
   notify: reload nginx
