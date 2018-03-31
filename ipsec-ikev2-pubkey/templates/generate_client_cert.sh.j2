@@ -25,5 +25,6 @@ echo "Reloading strongswan"
 systemctl restart strongswan
 
 # Pack client key and cert
-eval openssl pkcs12 -export -inkey "${CONFIG_DIR}/private/clientKey-${1}.pem" -in "${CONFIG_DIR}/private/clientCert-${1}.pem" -name \"$CLIENT_CN\" -certfile $CONFIG_DIR/cacerts/caCert.pem -caname \"$CA_CN\" -out "$CONFIG_DIR/clientCert-${1}.p12"
+# Apple does not extract CA.pem from p12
+eval openssl pkcs12 -export -inkey "${CONFIG_DIR}/private/clientKey-${1}.pem -in ${CONFIG_DIR}/private/clientCert-${1}.pem -name ${CLIENT_CN}  -out clientCert-${1}.p12"
 
